@@ -8,3 +8,7 @@ description = "Transforms audio input to a RBG led brightness on a serial port."
 [dependencies]
 cpal = "0.10"
 rustfft = "3"
+serial = "0.4"
+
+log = "0.4"
+edwardium_logger = "0.2"

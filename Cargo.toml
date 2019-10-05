@@ -1,0 +1,10 @@
+[package]
+name = "led_fft"
+version = "0.1.0"
+authors = ["Edwardium <TheEdward162@gmail.com>"]
+edition = "2018"
+description = "Transforms audio input to a RBG led brightness on a serial port."
+
+[dependencies]
+cpal = "0.10"
+rustfft = "3"

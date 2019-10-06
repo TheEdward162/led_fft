@@ -7,10 +7,10 @@ pub fn list_fitting_input_devices(host: &Host, channels: u16, sample_rate: u32, 
 	let mut result = Vec::new();
 
 	log::info!("Host {:?} devices:", host.id());
-	for (i, device) in host.devices().expect("Could not read devices.").enumerate() {
-		log::info!("\t{}) {:?}:", i, device.name().expect("Could not retrieve device name."));
+	for (i, device) in host.devices().expect("Could not read devices").enumerate() {
+		log::info!("\t{}) {:?}:", i, device.name().expect("Could not retrieve device name"));
 
-		for format in device.supported_input_formats().expect("Could not read device input formats.") {
+		for format in device.supported_input_formats().expect("Could not read device input formats") {
 			log::info!("\t\t{}ch ({} - {}) {:?}", format.channels, format.min_sample_rate.0, format.max_sample_rate.0, format.data_type);
 			if 
 				format.channels == channels

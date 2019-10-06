@@ -18,7 +18,7 @@ impl Context {
 			window_frame_counter: 0,
 
 			fft: FFTProcessor::new(),
-			led: LEDSerial::new(serial_port).expect("Could not open serial port.")
+			led: LEDSerial::new(serial_port).expect("Could not open serial port")
 		}
 	}
 
@@ -31,7 +31,7 @@ impl Context {
 
 			let mut frame: [DataType; CHANNELS] = [0.0; CHANNELS];
 			for i in 0 .. CHANNELS {
-				frame[i] = *samples.next().expect("Expected sample.");
+				frame[i] = *samples.next().expect("Expected sample");
 			}
 			
 			self.window.push(frame);
@@ -91,7 +91,7 @@ impl Context {
 		let fft_factor = (fft_max / 20.0f32 / 2.0f32).min(1.0).max(0.0);
 		let red: u8 = (fft_factor * 128.0) as u8 + 32;
 
-		self.led.update([red, 0, 0]).expect("Could not write to serial port.");
+		self.led.update([red, 0, 0]).expect("Could not write to serial port");
 	}
 
 	fn print_top_volume(&self) {

@@ -51,8 +51,8 @@ fn prepare_input_stream() -> (cpal::Host, cpal::EventLoop, cpal::StreamId) {
 		};
 		log::info!("Using device {} with format {:?}.", device.name().unwrap(), format);
 
-		let input_stream_id = event_loop.build_input_stream(&device, &format).expect("Could not build stream.");
-		event_loop.play_stream(input_stream_id.clone()).expect("Could not play stream.");
+		let input_stream_id = event_loop.build_input_stream(&device, &format).expect("Could not build stream");
+		event_loop.play_stream(input_stream_id.clone()).expect("Could not play stream");
 
 		input_stream_id
 	};
@@ -67,7 +67,7 @@ fn main() {
 	// 			log::Level::Trace, Default::default()
 	// 		)
 	// 	]
-	// ).expect("Could not initialize logger.");
+	// ).expect("Could not initialize logger");
 
 	let (_host, event_loop, input_stream_id) = prepare_input_stream();
 

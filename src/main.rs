@@ -6,6 +6,7 @@ mod window_buffer;
 mod fft_processor;
 
 mod context;
+use context::ColorFactor;
 
 /// Data type to use in FFT and audio sampling.
 ///
@@ -29,9 +30,23 @@ const BINS: usize = WINDOW_SIZE / BIN_SIZE;
 /// Number of spectrum bins.
 const SPECTRUM_BINS: usize = BINS / 2 - 1;
 
-
 const DEFAULT_SERIAL_PORT: &'static str = "/dev/ttyUSB0";
 const DEFAULT_DEVICE_INDEX: usize = 0;
+
+const DEFAULT_COLOR_FACTORS: [ColorFactor; 3] = [
+	ColorFactor {
+		base: 24,
+		mult: 60.0 / (20.0 * 2.0)
+	},
+	ColorFactor {
+		base: 0,
+		mult: 0.0
+	},
+	ColorFactor {
+		base: 0,
+		mult: 0.0
+	}
+];
 
 fn prepare_input_stream(mut device_index: usize) -> (cpal::Host, cpal::EventLoop, cpal::StreamId) {
 	let host = cpal::default_host();
@@ -97,7 +112,7 @@ fn main() {
 
 	let (_host, event_loop, input_stream_id) = prepare_input_stream(index);
 
-	let mut context = context::Context::new(serial);
+	let mut context = context::Context::new(serial, DEFAULT_COLOR_FACTORS);
 
 	event_loop.run(move |id, result| {
 		let data = match result {

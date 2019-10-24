@@ -3,22 +3,40 @@ use crate::window_buffer::WindowBuffer;
 use crate::fft_processor::FFTProcessor;
 use crate::led_serial::LEDSerial;
 
+#[derive(Copy, Clone, Debug)]
+pub struct ColorFactor {
+	pub base: u8,
+	pub mult: f32
+}
+impl ColorFactor {
+	pub fn compute(&self, fft_max: f32) -> u8 {
+		(
+			(fft_max * self.mult).max(0.0).min(140.0) as u8 + self.base
+		).max(0).min(160)
+	}
+}
+
 /// Application context.
 pub struct Context {
 	window: WindowBuffer<[DataType; CHANNELS]>,
 	window_frame_counter: usize,
 
 	fft: FFTProcessor,
-	led: LEDSerial
+	led: LEDSerial,
+
+	// TODO: Temporary solution
+	color_factors: [ColorFactor; 3]
 }
 impl Context {
-	pub fn new(serial_port: &str) -> Self {
+	pub fn new(serial_port: &str, color_factors: [ColorFactor; 3]) -> Self {
 		Context {
 			window: WindowBuffer::new(),
 			window_frame_counter: 0,
 
 			fft: FFTProcessor::new(),
-			led: LEDSerial::new(serial_port).expect("Could not open serial port")
+			led: LEDSerial::new(serial_port).expect("Could not open serial port"),
+
+			color_factors
 		}
 	}
 
@@ -88,10 +106,13 @@ impl Context {
 	fn output_serial(&mut self) {
 		let fft_max = self.fft.spectrum_bins().iter().copied().fold(0.0, f32::max);
 
-		let fft_factor = (fft_max / 20.0f32 / 2.0f32).min(1.0).max(0.0);
-		let red: u8 = (fft_factor * 128.0) as u8 + 32;
+		// let fft_factor = (fft_max / 20.0f32).min(1.0).max(0.0);
 
-		self.led.update([red, 0, 0]).expect("Could not write to serial port");
+		let red: u8 = self.color_factors[0].compute(fft_max);
+		let green: u8 = self.color_factors[1].compute(fft_max);
+		let blue: u8 = self.color_factors[2].compute(fft_max);
+
+		self.led.update([red, green, blue]).expect("Could not write to serial port");
 	}
 
 	fn print_top_volume(&self) {

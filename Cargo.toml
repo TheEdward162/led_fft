@@ -6,9 +6,16 @@ edition = "2018"
 description = "Transforms audio input to a RBG led brightness on a serial port."
 
 [dependencies]
-cpal = "0.10"
 rustfft = "3"
 serial = "0.4"
 
-log = "0.4"
+cpal = { version = "0.10", optional = true }
+libpulse-binding = { version = "2", optional = true, features = ["pa_v13"] }
+libpulse-simple-binding = { version = "2", optional = true }
+
+log = { version = "0.4", features = ["max_level_debug"] }
 edwardium_logger = "0.2"
+
+[features]
+backend_cpal = ["cpal"]
+backend_pulseaudio = ["libpulse-simple-binding", "libpulse-binding"]

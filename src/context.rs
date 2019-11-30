@@ -1,7 +1,9 @@
-use crate::{DataType, CHANNELS, UPDATE_FRAMES, SAMPLE_RATE, WINDOW_SIZE, SPECTRUM_BINS, BIN_SIZE};
+use crate::{DataType, CHANNELS, UPDATE_FRAMES, SAMPLE_RATE, WINDOW_SIZE, BIN_SIZE};
 use crate::window_buffer::WindowBuffer;
 use crate::fft_processor::FFTProcessor;
-use crate::led_serial::LEDSerial;
+
+use crate::util::SpectrumOperator;
+use crate::output::OutputHandler;
 
 #[derive(Copy, Clone, Debug)]
 pub struct ColorFactor {
@@ -22,21 +24,23 @@ pub struct Context {
 	window_frame_counter: usize,
 
 	fft: FFTProcessor,
-	led: LEDSerial,
-
-	// TODO: Temporary solution
-	color_factors: [ColorFactor; 3]
+	
+	operators: Vec<Box<dyn SpectrumOperator>>,
+	outputs: Vec<Box<dyn OutputHandler>>
 }
 impl Context {
-	pub fn new(serial_port: &str, color_factors: [ColorFactor; 3]) -> Self {
+	pub fn new(
+		operators: Vec<Box<dyn SpectrumOperator>>,
+		outputs: Vec<Box<dyn OutputHandler>>
+	) -> Self {
 		Context {
 			window: WindowBuffer::new(),
 			window_frame_counter: 0,
 
 			fft: FFTProcessor::new(),
-			led: LEDSerial::new(serial_port).expect("Could not open serial port"),
-
-			color_factors
+			
+			operators,
+			outputs
 		}
 	}
 
@@ -97,61 +101,30 @@ impl Context {
 	}
 
 	fn output(&mut self) {
-		self.output_serial();
-
-		// self.print_top_volume();
-		self.print_term_visualizer();
-	}
-
-	fn output_serial(&mut self) {
-		let fft_max = self.fft.spectrum_bins().iter().copied().fold(0.0, f32::max);
-
-		// let fft_factor = (fft_max / 20.0f32).min(1.0).max(0.0);
-
-		let red: u8 = self.color_factors[0].compute(fft_max);
-		let green: u8 = self.color_factors[1].compute(fft_max);
-		let blue: u8 = self.color_factors[2].compute(fft_max);
-
-		self.led.update([red, green, blue]).expect("Could not write to serial port");
-	}
-
-	fn print_top_volume(&self) {
-		let mut top_freq = 0.0;
-		let mut top_freq_volume = 0.0;
-
-		for (i, volume) in self.fft.output().skip(1).take(WINDOW_SIZE / 2 - 1).enumerate() {
-		    if volume >= top_freq_volume {
-		        top_freq_volume = volume;
-		        top_freq = Self::column_frequency(i + 1);
-		    }
+		let mut spectrum_bins = self.fft.spectrum_bins().to_vec();
+		
+		for operator in self.operators.iter_mut() {
+			operator.apply(&mut spectrum_bins);
 		}
-		print!("Top frequency {: >8.2} Hz at volume {: >5.2}\r", top_freq, top_freq_volume);
-	}
 
-	/// Simple visualization of the generated output.
-	fn print_term_visualizer(&self) {
-		const HEIGHT: usize = 13;
-		const ARBITRARY_MAX: DataType = 20.0;
-
-		// for bin in 0 .. SPECTRUM_BINS {
-		// 	let frequency = Self::spectrum_bin_frequency(bin);
-
-		// 	print!("{:.0}-{:.0} ", frequency[0], frequency[1]);
-		// }
-		for row in 0 .. HEIGHT {
-			print!("[");
-
-			for bin in self.fft.spectrum_bins().iter() {
-				let limit: f32 = ARBITRARY_MAX * (HEIGHT - row) as DataType / (HEIGHT as DataType);
-				if *bin > limit {
-					print!("x");
-				} else {
-					print!(" ");
-				}
-			}
-
-			println!("]");
+		for output in self.outputs.iter_mut() {
+			output.handle_output(
+				&spectrum_bins
+			);
 		}
-		print!("\u{1B}[{}A", HEIGHT);
 	}
+
+	// fn print_top_volume(&self) {
+	// 	let mut top_freq = 0.0;
+	// 	let mut top_freq_volume = 0.0;
+
+	// 	for (i, volume) in self.fft.output().skip(1).take(WINDOW_SIZE / 2 - 1).enumerate() {
+	// 	    if volume >= top_freq_volume {
+	// 	        top_freq_volume = volume;
+	// 	        top_freq = Self::column_frequency(i + 1);
+	// 	    }
+	// 	}
+	// 	print!("Top frequency {: >8.2} Hz at volume {: >5.2}\r", top_freq, top_freq_volume);
+	// }
+
 }

@@ -1,12 +1,14 @@
-use cpal::traits::*;
-
-mod input_source;
-mod led_serial;
 mod window_buffer;
 mod fft_processor;
 
+mod input;
+mod output;
+mod util;
+
 mod context;
 use context::ColorFactor;
+
+use input::SoundSource;
 
 /// Data type to use in FFT and audio sampling.
 ///
@@ -14,8 +16,7 @@ use context::ColorFactor;
 type DataType = f32;
 
 /// Channels of the input.
-const CHANNELS: usize = 1;
-const DATA_TYPE_CPAL: cpal::SampleFormat = cpal::SampleFormat::F32;
+const CHANNELS: usize = 2;
 /// Sample rate of the input.
 const SAMPLE_RATE: u32 = 44100;
 
@@ -32,59 +33,6 @@ const SPECTRUM_BINS: usize = BINS / 2 - 1;
 
 const DEFAULT_SERIAL_PORT: &'static str = "/dev/ttyUSB0";
 const DEFAULT_DEVICE_INDEX: usize = 0;
-
-const DEFAULT_COLOR_FACTORS: [ColorFactor; 3] = [
-	ColorFactor {
-		base: 24,
-		mult: 60.0 / (20.0 * 2.0)
-	},
-	ColorFactor {
-		base: 0,
-		mult: 0.0
-	},
-	ColorFactor {
-		base: 0,
-		mult: 0.0
-	}
-];
-
-fn prepare_input_stream(mut device_index: usize) -> (cpal::Host, cpal::EventLoop, cpal::StreamId) {
-	let host = cpal::default_host();
-	let event_loop = host.event_loop();
-
-	let input_stream_id = {
-		let fitting_device_indices = input_source::list_fitting_input_devices(&host, CHANNELS as u16, SAMPLE_RATE, DATA_TYPE_CPAL);
-		if fitting_device_indices.len() == 0 {
-			log::error!("Could not find any fitting device.");
-			panic!("Could not find any fitting device.");
-		}
-
-		log::debug!("Fitting device indices:");
-		for index in fitting_device_indices.iter() {
-			log::debug!("\t{}", index);
-		}
-
-		if device_index >= fitting_device_indices.len() {
-			log::warn!("Index {} is bigger than number of fitting devices ({}). Using 0.", device_index, fitting_device_indices.len());
-			device_index = 0;
-		}
-
-		let device = host.devices().unwrap().nth(fitting_device_indices[device_index]).unwrap();
-		let format = cpal::Format {
-			channels: CHANNELS as u16,
-			sample_rate: cpal::SampleRate(SAMPLE_RATE),
-			data_type: DATA_TYPE_CPAL
-		};
-		log::info!("Using device {} with format {:?}.", device.name().unwrap(), format);
-
-		let input_stream_id = event_loop.build_input_stream(&device, &format).expect("Could not build stream");
-		event_loop.play_stream(input_stream_id.clone()).expect("Could not play stream");
-
-		input_stream_id
-	};
-
-	(host, event_loop, input_stream_id)
-}
 
 fn main() {
 	edwardium_logger::init(
@@ -110,26 +58,50 @@ fn main() {
 		index = args[2].parse::<usize>().unwrap_or(DEFAULT_DEVICE_INDEX);
 	}
 
-	let (_host, event_loop, input_stream_id) = prepare_input_stream(index);
+	let context = context::Context::new(
+		vec![
+			Box::new(
+				util::SpectrumSmoother::new(10)
+			) as Box<_>,
+			Box::new(
+				util::SpectrumScaler::new_interpolated(
+					// vec![0.3, 0.7, 1.0, 1.0, 3.5, 4.0]
+					vec![1.0, 4.0, 10.0]
+				)
+			) as Box<_>,
+			Box::new(util::SpectrumNormalizer::new(10)) as Box<_>
+		],
+		vec![
+			Box::new(output::serial::LEDSerial::new(serial).expect("Could not open serial port")) as Box<_>,
+			Box::new(output::text::TextOutputHandler::new()) as Box<_>
+		]
+	);
+	
+	// TODO: Allow choosing which backend to use
 
-	let mut context = context::Context::new(serial, DEFAULT_COLOR_FACTORS);
+	#[cfg(feature = "backend_cpal")]
+	{
+		log::info!("Using cpal backend");
+		let mut sound_source = input::cpal::CpalSoundSource::init(
+			CHANNELS as u16,
+			SAMPLE_RATE,
+			Some(index)
+		).unwrap();
 
-	event_loop.run(move |id, result| {
-		let data = match result {
-			Ok(data) => data,
-			Err(err) => {
-				log::error!("An error occurred on stream {:?}: {}", id, err);
-				return;
-			}
-		};
+		log::info!("Entering loop...");
+		sound_source.run(context);
+	}
 
-		match data {
-			cpal::StreamData::Input { buffer: cpal::UnknownTypeInputBuffer::F32(buffer) } => {
-				assert_eq!(id, input_stream_id);
+	#[cfg(feature = "backend_pulseaudio")]
+	{
+		log::info!("Using pulseaudio backend");
+		let mut sound_source = input::pulse::PulseaudioSoundSource::init(
+			CHANNELS as u16,
+			SAMPLE_RATE,
+			Some(index)
+		).unwrap();
 
-				context.process_input_buffer(&buffer);
-			},
-			_ => panic!("expecting f32 input data"),
-		}
-	});
+		log::info!("Entering loop...");
+		sound_source.run(context);
+	}
 }

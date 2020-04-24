@@ -1,22 +1,16 @@
-use crate::DataType;
-use super::{SpectrumOperator, RunningAverage};
+use super::SpectrumOperator;
+use crate::{util::RunningAverage, DataType};
 
 pub struct SpectrumSmoother {
 	bin_avg: Vec<RunningAverage<DataType>>
 }
 impl SpectrumSmoother {
 	pub fn new(smooth_history: usize) -> Self {
-		let mut bin_avg = Vec::with_capacity(
-			crate::SPECTRUM_BINS
-		);
+		let mut bin_avg = Vec::with_capacity(crate::SPECTRUM_BINS);
 		for _ in 0 .. crate::SPECTRUM_BINS {
-			bin_avg.push(
-				RunningAverage::new(smooth_history)
-			);
+			bin_avg.push(RunningAverage::new(smooth_history));
 		}
-		SpectrumSmoother {
-			bin_avg
-		}
+		SpectrumSmoother { bin_avg }
 	}
 }
 impl SpectrumOperator for SpectrumSmoother {

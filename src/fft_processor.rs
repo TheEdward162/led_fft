@@ -1,9 +1,6 @@
-use rustfft::FFT;
-use rustfft::algorithm::Radix4;
-use rustfft::num_complex::Complex;
-use rustfft::num_traits::Zero;
+use rustfft::{algorithm::Radix4, num_complex::Complex, num_traits::Zero, FFT};
 
-use crate::{DataType, WINDOW_SIZE, BIN_SIZE, SPECTRUM_BINS};
+use crate::{DataType, BIN_SIZE, SPECTRUM_BINS, WINDOW_SIZE};
 
 pub struct FFTProcessor {
 	input: [Complex<DataType>; WINDOW_SIZE],
@@ -44,7 +41,10 @@ impl FFTProcessor {
 			let column_begin = (bin + 1) * BIN_SIZE;
 			let column_end = (bin + 2) * BIN_SIZE;
 
-			let bin_value: DataType = self.output[column_begin .. column_end].iter().map(Complex::norm).sum();
+			let bin_value: DataType = self.output[column_begin .. column_end]
+				.iter()
+				.map(Complex::norm)
+				.sum();
 
 			self.spectrum_bins[bin] = bin_value;
 		}

@@ -11,11 +11,13 @@ const STREAM_DESCRIPTION: &'static str = "led_fft thing";
 pub struct PulseaudioSoundSource {
 	stream: Simple
 }
-impl PulseaudioSoundSource {
-	
-}
+impl PulseaudioSoundSource {}
 impl SoundSource for PulseaudioSoundSource {
-	fn init(channels: u16, sample_rate: u32, maybe_device_index: Option<usize>) -> Result<Self, ()> {
+	fn init(
+		channels: u16,
+		sample_rate: u32,
+		maybe_device_index: Option<usize>
+	) -> Result<Self, ()> {
 		let sample_spec = pa::sample::Spec {
 			format: DATA_TYPE,
 			channels: channels as u8,
@@ -25,10 +27,9 @@ impl SoundSource for PulseaudioSoundSource {
 
 		let buffering_attributes = pa::def::BufferAttr {
 			maxlength: std::u32::MAX,
-			fragsize: (
-				std::mem::size_of::<crate::DataType>() / std::mem::size_of::<u8>() * crate::UPDATE_FRAMES
-			) as u32,
-			.. Default::default()
+			fragsize: (std::mem::size_of::<crate::DataType>() / std::mem::size_of::<u8>()
+				* crate::UPDATE_FRAMES) as u32,
+			..Default::default()
 		};
 
 		let stream = match Simple::new(
@@ -44,36 +45,31 @@ impl SoundSource for PulseaudioSoundSource {
 			Ok(s) => s,
 			Err(e) => {
 				log::error!("{}", e);
-				return Err(());
+				return Err(())
 			}
 		};
 
-		Ok(
-			PulseaudioSoundSource {
-				stream
-			}
-		)
+		Ok(PulseaudioSoundSource { stream })
 	}
 
 	fn run(&mut self, mut context: crate::context::Context) {
 		let mut buffer: [crate::DataType; crate::UPDATE_FRAMES] = [0.0; crate::UPDATE_FRAMES];
-		
+
 		loop {
 			let read_result = unsafe {
 				let buffer_pointer: *mut f32 = buffer.as_mut_ptr();
 				let bytes_slice: &mut [u8] = std::slice::from_raw_parts_mut(
 					buffer_pointer as *mut u8,
-					std::mem::size_of::<crate::DataType>() / std::mem::size_of::<u8>() * crate::UPDATE_FRAMES
+					std::mem::size_of::<crate::DataType>() / std::mem::size_of::<u8>()
+						* crate::UPDATE_FRAMES
 				);
-				self.stream.read(
-					bytes_slice
-				)
+				self.stream.read(bytes_slice)
 			};
 			match read_result {
 				Ok(()) => (),
 				Err(e) => {
 					log::error!("{} ({:?})", e, e);
-					break;
+					break
 				}
 			}
 

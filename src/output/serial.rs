@@ -1,5 +1,7 @@
 use std::io::Write;
 
+use crate::{util::TopColorCounter, DataType};
+
 use super::OutputHandler;
 
 const PACKET_LENGTH: usize = 3;
@@ -10,19 +12,19 @@ const PACKET_END_MARKER: u8 = 0xFF;
 /// Needs a correct program on the reading side.
 pub struct LEDSerial {
 	serial_port: serial::SystemPort,
-	last_written: [u8; PACKET_LENGTH]
+	last_written: [u8; PACKET_LENGTH],
+	top_color: TopColorCounter
 }
 impl LEDSerial {
 	pub fn new(port: &str) -> Result<Self, serial::core::Error> {
 		log::info!("Opening port {}", port);
 		let serial_port = serial::open(port)?;
 
-		Ok(
-			LEDSerial {
-				serial_port,
-				last_written: [0; PACKET_LENGTH]
-			}
-		)
+		Ok(LEDSerial {
+			serial_port,
+			last_written: [0; PACKET_LENGTH],
+			top_color: TopColorCounter::new()
+		})
 	}
 
 	/// Writes one packet with end marker appended.
@@ -32,32 +34,35 @@ impl LEDSerial {
 		if packet == self.last_written {
 			return Ok(())
 		}
-		
-		log::trace!("Sending packet [{}, {}, {}, {}]", packet[0], packet[1], packet[2], PACKET_END_MARKER);
-		self.serial_port.write(
-			&[packet[0], packet[1], packet[2], PACKET_END_MARKER]
-		)?;
+
+		log::trace!(
+			"Sending packet [{}, {}, {}, {}]",
+			packet[0],
+			packet[1],
+			packet[2],
+			PACKET_END_MARKER
+		);
+		self.serial_port
+			.write(&[packet[0], packet[1], packet[2], PACKET_END_MARKER])?;
 		self.last_written = packet;
 
 		Ok(())
 	}
 }
 impl OutputHandler for LEDSerial {
-	fn handle_output(
-		&mut self,
-		spectrum: &[crate::DataType]
-	) {
-		let red_norm = spectrum[3 .. 7].iter().fold(0.0, |acc, v| { acc + *v }) / 5.0;
-		let red = (red_norm * 32.0 + 8.0) as u8;
+	fn handle_output(&mut self, spectrum: &[crate::DataType]) {
+		let red = crate::config::RED_DEFAULT_INFO.compute_value(spectrum);
+		let green = crate::config::GREEN_DEFAULT_INFO.compute_value(spectrum);
+		let blue = crate::config::BLUE_DEFAULT_INFO.compute_value(spectrum);
 
-		let green_norm = spectrum[15 .. 25].iter().fold(0.0, |acc, v| { acc + *v }) / 10.0;
-		let green = (green_norm * 16.0 + 8.0) as u8;
+		let color_mix = self.top_color.update([red, green, blue]);
+		let all_color = red + green + blue;
+		let result = [
+			(color_mix[0] * red as DataType) as u8,
+			(color_mix[1] * green as DataType) as u8,
+			(color_mix[2] * blue as DataType) as u8
+		];
 
-		let blue_norm = spectrum[30 .. 40].iter().fold(0.0, |acc, v| { acc + *v }) / 10.0;
-		let blue = 0; //(blue_norm * 16.0 + 8.0) as u8;
-
-		self.update(
-			[red, green, blue]
-		).expect("Could not write to serial port");
+		self.update(result).expect("Could not write to serial port");
 	}
 }

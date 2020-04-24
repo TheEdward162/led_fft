@@ -5,7 +5,9 @@ pub mod pulse;
 pub mod cpal;
 
 pub trait SoundSource {
-	fn init(channels: u16, sample_rate: u32, maybe_device_index: Option<usize>) -> Result<Self, ()> where Self: Sized;
+	fn init(channels: u16, sample_rate: u32, maybe_device_index: Option<usize>) -> Result<Self, ()>
+	where
+		Self: Sized;
 
 	fn run(&mut self, context: crate::context::Context);
 }

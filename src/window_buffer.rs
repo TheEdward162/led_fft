@@ -19,5 +19,5 @@ impl<Data: Default + Copy> WindowBuffer<Data> {
 
 	pub fn buffer(&self) -> &[Data; WINDOW_SIZE] {
 		&self.buffer
-	} 
+	}
 }

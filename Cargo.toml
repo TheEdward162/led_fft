@@ -16,6 +16,8 @@ libpulse-simple-binding = { version = "2", optional = true }
 log = { version = "0.4", features = ["max_level_debug"] }
 edwardium_logger = "0.2"
 
+termion = "1.5"
+
 [features]
 backend_cpal = ["cpal"]
 backend_pulseaudio = ["libpulse-simple-binding", "libpulse-binding"]

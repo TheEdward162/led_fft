@@ -1,12 +1,15 @@
-mod window_buffer;
 mod fft_processor;
+mod window_buffer;
 
 mod input;
+mod operator;
 mod output;
 mod util;
 
+mod parametrization;
+
+mod config;
 mod context;
-use context::ColorFactor;
 
 use input::SoundSource;
 
@@ -22,7 +25,7 @@ const SAMPLE_RATE: u32 = 44100;
 
 /// Size of the window the FFT is run on.
 const WINDOW_SIZE: usize = 2048;
-/// After this many frames have been processed, the FFT is recalculated over the current window. 
+/// After this many frames have been processed, the FFT is recalculated over the current window.
 const UPDATE_FRAMES: usize = WINDOW_SIZE / 4;
 /// Size of one bin.
 const BIN_SIZE: usize = 20;
@@ -35,16 +38,14 @@ const DEFAULT_SERIAL_PORT: &'static str = "/dev/ttyUSB0";
 const DEFAULT_DEVICE_INDEX: usize = 0;
 
 fn main() {
-	edwardium_logger::init(
-		vec![
-			edwardium_logger::StdoutTarget::new(
-				log::Level::Trace, Default::default()
-			)
-		]
-	).expect("Could not initialize logger");
+	edwardium_logger::init(vec![edwardium_logger::StdoutTarget::new(
+		log::Level::Trace,
+		Default::default()
+	)])
+	.expect("Could not initialize logger");
 
 	let args: Vec<String> = std::env::args().collect();
-	
+
 	let serial;
 	let index: usize;
 	if args.len() <= 1 {
@@ -60,33 +61,28 @@ fn main() {
 
 	let context = context::Context::new(
 		vec![
-			Box::new(
-				util::SpectrumSmoother::new(10)
-			) as Box<_>,
-			Box::new(
-				util::SpectrumScaler::new_interpolated(
-					// vec![0.3, 0.7, 1.0, 1.0, 3.5, 4.0]
-					vec![1.0, 4.0, 10.0]
-				)
-			) as Box<_>,
-			Box::new(util::SpectrumNormalizer::new(10)) as Box<_>
+			operator::scaler::new_interpolated(
+				// vec![0.3, 0.7, 1.0, 1.0, 3.5, 4.0]
+				vec![1.0, 4.0, 8.0]
+			),
+			Box::new(operator::SpectrumSmoother::new(10)) as Box<_>,
+			Box::new(operator::HighPassFilter::new(3.0)) as Box<_>,
+			Box::new(operator::AvgNormalizer::new(1)) as Box<_>,
 		],
 		vec![
-			Box::new(output::serial::LEDSerial::new(serial).expect("Could not open serial port")) as Box<_>,
-			Box::new(output::text::TextOutputHandler::new()) as Box<_>
+			Box::new(output::serial::LEDSerial::new(serial).expect("Could not open serial port"))
+				as Box<_>,
+			Box::new(output::text::TextOutputHandler::new()) as Box<_>,
 		]
 	);
-	
+
 	// TODO: Allow choosing which backend to use
 
 	#[cfg(feature = "backend_cpal")]
 	{
 		log::info!("Using cpal backend");
-		let mut sound_source = input::cpal::CpalSoundSource::init(
-			CHANNELS as u16,
-			SAMPLE_RATE,
-			Some(index)
-		).unwrap();
+		let mut sound_source =
+			input::cpal::CpalSoundSource::init(CHANNELS as u16, SAMPLE_RATE, Some(index)).unwrap();
 
 		log::info!("Entering loop...");
 		sound_source.run(context);
@@ -95,11 +91,9 @@ fn main() {
 	#[cfg(feature = "backend_pulseaudio")]
 	{
 		log::info!("Using pulseaudio backend");
-		let mut sound_source = input::pulse::PulseaudioSoundSource::init(
-			CHANNELS as u16,
-			SAMPLE_RATE,
-			Some(index)
-		).unwrap();
+		let mut sound_source =
+			input::pulse::PulseaudioSoundSource::init(CHANNELS as u16, SAMPLE_RATE, Some(index))
+				.unwrap();
 
 		log::info!("Entering loop...");
 		sound_source.run(context);

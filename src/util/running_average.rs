@@ -11,19 +11,14 @@ impl<D: Add<D, Output = D> + Div<D, Output = D> + Default + Copy + From<u16>> Ru
 			array.push(Default::default());
 		}
 
-		RunningAverage {
-			index: 0,
-			array
-		}
+		RunningAverage { index: 0, array }
 	}
-	
+
 	pub fn update(&mut self, value: D) -> D {
 		self.array[self.index] = value;
 		self.index = (self.index + 1) % self.array.len();
 
-		self.array.iter().fold(
-			D::default(),
-			|acc, val| { acc + *val }
-		) / D::from(self.array.len() as u16)
+		self.array.iter().fold(D::default(), |acc, val| acc + *val)
+			/ D::from(self.array.len() as u16)
 	}
 }

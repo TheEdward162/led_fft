@@ -1,4 +1,4 @@
-use crate::DataType;
+use crate::config::DataType;
 
 pub enum ParamFn {
 	Linear,

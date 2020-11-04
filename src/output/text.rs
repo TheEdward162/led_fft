@@ -1,22 +1,71 @@
+use std::io::Write;
+
 use termion::color as tc;
 
 use super::OutputHandler;
-use crate::DataType;
+use crate::config::DataType;
 
-use crate::config::{BLUE_DEFAULT_INFO, GREEN_DEFAULT_INFO, RED_DEFAULT_INFO};
+// use crate::config::{BLUE_DEFAULT_INFO, GREEN_DEFAULT_INFO, RED_DEFAULT_INFO};
 
 pub struct TextOutputHandler {
-	top_color: crate::util::TopColorCounter
+	// top_color: crate::util::TopColorCounter\
 }
 impl TextOutputHandler {
 	pub fn new() -> Self {
 		TextOutputHandler {
-			top_color: crate::util::TopColorCounter::new()
+			// top_color: crate::util::TopColorCounter::new()
 		}
 	}
 }
-impl OutputHandler for TextOutputHandler {
-	fn handle_output(&mut self, spectrum: &[crate::DataType]) {
+impl<const SPECTRUM_BINS: usize> OutputHandler<SPECTRUM_BINS> for TextOutputHandler {
+	fn handle_output(&mut self, spectrum: &[DataType; SPECTRUM_BINS]) {
+		const ROW_PREFIX: &'static str = "[";
+		// const ROW_MIDFIX: &'static str = "|";
+		const ROW_POSTFIX: &'static str = "]\n";
+		const CELL_EMPTY: &'static str = " ";
+		const CELL_FULL: &'static str = "x";
+		
+		const HEIGHT: usize = 20;
+		// TODO: This should be const but there's an error with using generics from outer function (?!)
+		#[allow(non_snake_case)]
+		let WIDHT: usize = spectrum.len();
+
+		const UP_TRESHOLD: f64 = 0.0;
+		const LOW_TRESHOLD: f64 = -150.0;
+		const HALF_STEP: f64 = (UP_TRESHOLD - LOW_TRESHOLD) / HEIGHT as f64 / 2.0f64;
+
+		let stream = std::io::stdout();
+		let mut stream = stream.lock();
+
+		let inner_result = (|| -> Result<(), std::io::Error> {
+			for row in 0 .. HEIGHT {
+				let cell_limit: f64 = (HEIGHT - row) as f64 / HEIGHT as f64 * (UP_TRESHOLD - LOW_TRESHOLD) + LOW_TRESHOLD - HALF_STEP;
+
+				write!(stream, "{}", ROW_PREFIX)?;
+				for column in 0 .. WIDHT {
+					let bin_index = (column as f64 / WIDHT as f64 * SPECTRUM_BINS as f64) as usize;
+
+					if spectrum[bin_index] as f64 <= cell_limit {
+						write!(stream, "{}", CELL_EMPTY)?;
+					} else {
+						write!(stream, "{}", CELL_FULL)?;
+					}
+				}
+				write!(stream, "{}", ROW_POSTFIX)?;
+			}
+			write!(stream, "\u{1B}[{}A", HEIGHT)?;
+
+			Ok(())
+		})();
+
+		match inner_result {
+			Ok(()) => (),
+			Err(err) => log::error!("Could not write to stdout: {}", err)
+		}
+	}
+	
+	/*
+	fn handle_output(&mut self, spectrum: &[DataType; SPECTRUM_BINS]) {
 		const HEIGHT: usize = 20;
 		const BIN_LIMIT_MULT: DataType = 0.5;
 		const COLOR_LIMIT_MULT: DataType = 1.0; // 0.125;
@@ -87,4 +136,5 @@ impl OutputHandler for TextOutputHandler {
 		}
 		print!("\u{1B}[{}A", HEIGHT);
 	}
+	*/
 }

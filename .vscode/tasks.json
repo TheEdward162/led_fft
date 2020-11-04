@@ -4,6 +4,40 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			"label": "Cargo: Run (release, cpal)",
+			"type": "shell",
+			"command": "cargo run --release --features backend_cpal -- --channels 1 --rate 44100",
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "dedicated",
+				"showReuseMessage": false,
+				"clear": true
+			},
+			"problemMatcher": {
+				"owner": "rust",
+				"fileLocation": [
+					"relative",
+					"${workspaceFolder}"
+				],
+				"pattern": [
+					{
+						"regexp": "^(error|warning)(\\[E[0-9]{4}\\])?:\\s(.+)$",
+						"severity": 1,
+						"message": 3
+					},
+					{
+						"regexp": "^\\s*--> (.+?):([0-9]+):([0-9]+)$",
+						"file": 1,
+						"line": 2,
+						"column": 3
+					}
+				]
+			}
+		},
+		{
 			"label": "Cargo: Run (release, pulse)",
 			"type": "shell",
 			"command": "cargo run --release --features backend_pulseaudio",
@@ -14,7 +48,7 @@
 				"focus": false,
 				"panel": "dedicated",
 				"showReuseMessage": false,
-				"clear": "always"
+				"clear": true
 			},
 			"problemMatcher": {
 				"owner": "rust",

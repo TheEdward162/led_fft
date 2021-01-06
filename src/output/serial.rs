@@ -10,17 +10,17 @@ const PACKET_END_MARKER: u8 = 0xFF;
 /// Handler for writing LED data to serial port.
 ///
 /// Needs a correct program on the reading side.
-pub struct LEDSerial {
+pub struct LedSerial {
 	serial_port: serial::SystemPort,
 	last_written: [u8; PACKET_LENGTH],
 	top_color: TopColorCounter
 }
-impl LEDSerial {
+impl LedSerial {
 	pub fn new(port: &str) -> Result<Self, serial::core::Error> {
 		log::info!("Opening port {}", port);
 		let serial_port = serial::open(port)?;
 
-		Ok(LEDSerial {
+		Ok(LedSerial {
 			serial_port,
 			last_written: [0; PACKET_LENGTH],
 			top_color: TopColorCounter::new()
@@ -49,7 +49,7 @@ impl LEDSerial {
 		Ok(())
 	}
 }
-impl OutputHandler for LEDSerial {
+impl OutputHandler for LedSerial {
 	fn handle_output(&mut self, spectrum: &[crate::DataType]) {
 		let red = crate::config::RED_DEFAULT_INFO.compute_value(spectrum);
 		let green = crate::config::GREEN_DEFAULT_INFO.compute_value(spectrum);

@@ -16,18 +16,6 @@ impl<Data: Default + Copy, const SIZE: usize> WindowBuffer<Data, SIZE> {
 		self.index = (self.index + 1) % SIZE;
 	}
 
-	/*
-	/// Returns a mutable reference to the next element and then increases the internal index.
-	/// It is intended that the mutable slice is used to mutate the existing (already default-initialized,
-	/// or preserved from the last push) memory to insert the new data.
-	pub fn push_mut(&mut self) -> &mut Data {
-		let index = self.index;
-		self.index = (self.index + 1) % SIZE;
-		
-		&mut self.buffer[index]
-	}
-	*/
-
 	// pub fn buffer(&self) -> &[Data; SIZE] {
 	// 	&self.buffer
 	// }

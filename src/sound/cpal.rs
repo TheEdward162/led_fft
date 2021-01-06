@@ -118,7 +118,7 @@ impl SoundSource for CpalSoundSource {
 			buffer_size: BufferSize::Fixed(config::UPDATE_FRAMES as u32)
 		};
 		log::info!(
-			"Using device \"{}\" with config: {:?}",
+			"Using device \"{}\": {:?}",
 			device.name().unwrap(),
 			config
 		);

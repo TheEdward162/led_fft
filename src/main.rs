@@ -23,6 +23,7 @@ fn main() {
 	let cli_config = core::config::CliConfig::parse(
 		std::env::args().skip(1)
 	);
+	log::info!("{:?}", cli_config);
 
 	let context: Context<
 		_, _,

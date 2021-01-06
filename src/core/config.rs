@@ -15,8 +15,7 @@ pub const UPDATE_FRAMES: usize = WINDOW_SIZE / 4;
 pub const SPECTRUM_BINS: usize = WINDOW_SIZE / 2 / 16 - 1;
 
 pub fn window_envelope_function<const WINDOW_SIZE: usize>(index: usize) -> DataType {
-	// TODO: Somehow decide based on `DataType`
-	const PI: DataType = std::f32::consts::PI;
+	const PI: DataType = std::f64::consts::PI as DataType;
 	
 	0.5 * (
 		1.0 - (
@@ -27,25 +26,7 @@ pub fn window_envelope_function<const WINDOW_SIZE: usize>(index: usize) -> DataT
 	
 pub const WINDOW_EVELOPE_VARW: DataType = 3.0 / 8.0;
 
-// pub const RED_DEFAULT_INFO: ColorOutputInfo = ColorOutputInfo {
-// 	bin_range: 2 .. 9,
-// 	base_value: 0,
-// 	mult_value: 64.0,
-// 	param_fn: ParamFn::Logarithmic
-// };
-// pub const GREEN_DEFAULT_INFO: ColorOutputInfo = ColorOutputInfo {
-// 	bin_range: 14 .. 26,
-// 	base_value: 0,
-// 	mult_value: 64.0,
-// 	param_fn: ParamFn::Exponential
-// };
-// pub const BLUE_DEFAULT_INFO: ColorOutputInfo = ColorOutputInfo {
-// 	bin_range: 30 .. 40,
-// 	base_value: 0,
-// 	mult_value: 64.0,
-// 	param_fn: ParamFn::SquareRoot
-// };
-
+#[derive(Debug)]
 pub struct CliConfig {
 	pub serial_port: Option<String>,
 	pub device_index: crate::sound::DeviceIndex,
@@ -59,34 +40,29 @@ impl CliConfig {
 		let mut channels = 2u16;
 		let mut sample_rate = 44100u32;
 
-		loop {
-			let current = input.next();
+		while let Some(value) = input.next() {
+			match value.as_str() {
+				"--port" | "-p" => {
+					serial_port = Some(
+						input.next().expect("--port flag must be followed by an argument")
+					);
+				}
+				"--device" | "-d" => {
+					let value = input.next().expect("--device flag must be followed by an argument");
+					let index: usize = value.parse().expect("--device argument is not a valid number");
 
-			match current {
-				None => break,
-				Some(value) => match value.as_str() {
-					"--port" | "-p" => {
-						serial_port = Some(
-							input.next().expect("--port flag must be followed by an argument")
-						);
-					}
-					"--device" | "-d" => {
-						let value = input.next().expect("--device flag must be followed by an argument");
-						let index: usize = value.parse().expect("--device argument is not a valid number");
-
-						device_index = DeviceIndex::Nth(index)
-					}
-					"--channels" | "-c" => {
-						let value = input.next().expect("--channels flag must be followed by an argument");
-						channels = value.parse().expect("--channels argument is not a valid number");
-					}
-					"--rate" | "-r" => {
-						let value = input.next().expect("--rate flag must be followed by an argument");
-						sample_rate = value.parse().expect("--rate argument is not a valid number");
-					}
-					v => {
-						log::error!("{} argument not recognized", v);
-					}
+					device_index = DeviceIndex::Nth(index)
+				}
+				"--channels" | "-c" => {
+					let value = input.next().expect("--channels flag must be followed by an argument");
+					channels = value.parse().expect("--channels argument is not a valid number");
+				}
+				"--rate" | "-r" => {
+					let value = input.next().expect("--rate flag must be followed by an argument");
+					sample_rate = value.parse().expect("--rate argument is not a valid number");
+				}
+				v => {
+					log::error!("{} argument not recognized", v);
 				}
 			}
 		}

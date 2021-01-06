@@ -4,7 +4,7 @@ use crate::config::DataType;
 pub mod text;
 
 pub trait OutputHandler<const SPECTRUM_BINS: usize> {
-	/// Transforms the spectrum bins into an output.
+	/// Outputs the spectrum bins.
 	fn handle_output(&mut self, spectrum: &[DataType; SPECTRUM_BINS]);
 }
 impl<const SPECTRUM_BINS: usize> OutputHandler<SPECTRUM_BINS> for () {
@@ -18,19 +18,51 @@ impl<const SPECTRUM_BINS: usize> OutputHandler<SPECTRUM_BINS> for Vec<Box<dyn Ou
 	}
 }
 
-// pub struct ColorOutputInfo {
-// 	pub bin_range: std::ops::Range<usize>,
-// 	pub base_value: u8,
-// 	pub mult_value: DataType,
-// 	pub param_fn: crate::parametrization::ParamFn
-// }
-// impl ColorOutputInfo {
-// 	pub fn parametrized_value(&self, spectrum: &[DataType]) -> DataType {
-// 		let sum: DataType = spectrum[self.bin_range.clone()].iter().sum();
-// 		self.param_fn.apply(sum)
-// 	}
-
-// 	pub fn compute_value(&self, spectrum: &[DataType]) -> u8 {
-// 		(self.parametrized_value(spectrum) * self.mult_value) as u8 + self.base_value
-// 	}
-// }
+macro_rules! impl_output_handler_tuple {
+	(
+		$(
+			$idx: tt -> $T: ident,
+		)+
+	) => {
+		impl<$($T: OutputHandler<SPECTRUM_BINS>,)+ const SPECTRUM_BINS: usize> OutputHandler<SPECTRUM_BINS> for ($($T,)+) {
+			fn handle_output(&mut self, spectrum: &[DataType; SPECTRUM_BINS]) {
+				$(
+					self.$idx.handle_output(spectrum);
+				)+
+			}
+		}
+	};
+}
+impl_output_handler_tuple! {
+	0 -> A,
+}
+impl_output_handler_tuple! {
+	0 -> A,
+	1 -> B,
+}
+impl_output_handler_tuple! {
+	0 -> A,
+	1 -> B,
+	2 -> C,
+}
+impl_output_handler_tuple! {
+	0 -> A,
+	1 -> B,
+	2 -> C,
+	3 -> D,
+}
+impl_output_handler_tuple! {
+	0 -> A,
+	1 -> B,
+	2 -> C,
+	3 -> D,
+	4 -> E,
+}
+impl_output_handler_tuple! {
+	0 -> A,
+	1 -> B,
+	2 -> C,
+	3 -> D,
+	4 -> E,
+	5 -> F,
+}

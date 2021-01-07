@@ -76,22 +76,6 @@ impl<
 		);
 	}
 
-	// /// Calculates frequency of a column.
-	// fn column_frequency(column: usize) -> DataType {
-	// 	column as DataType * SAMPLE_RATE as DataType / WINDOW_SIZE as DataType
-	// }
-
-	// /// Calculates frequency range of a bin.
-	// fn spectrum_bin_frequency(bin: usize) -> [DataType; 2] {
-	// 	let column_begin = (bin + 1) * BIN_SIZE;
-	// 	let column_end = (bin + 2) * BIN_SIZE;
-
-	// 	[
-	// 		Self::column_frequency(column_begin),
-	// 		Self::column_frequency(column_end)
-	// 	]
-	// }
-
 	/// Applies operator to the last output and runs the output handler.
 	///
 	/// This method copies the spectrum bins buffer and can be called repeatedly.

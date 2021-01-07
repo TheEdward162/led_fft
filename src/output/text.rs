@@ -3,10 +3,21 @@ use std::io::Write;
 use super::OutputHandler;
 use crate::config::DataType;
 
-pub struct TextOutputHandler {}
+pub struct TextOutputHandler {
+	up_threshold: f64,
+	low_threshold: f64
+}
 impl TextOutputHandler {
-	pub fn new() -> Self {
-		TextOutputHandler {}
+	pub const fn new(
+		low_threshold: f64,
+		up_threshold: f64
+	) -> Self {
+		// debug_assert!(low_threshold < up_threshold);
+
+		TextOutputHandler {
+			low_threshold,
+			up_threshold
+		}
 	}
 
 	fn draw_bars<const SPECTRUM_BINS: usize>(&self, stream: &mut impl Write, spectrum: &[DataType; SPECTRUM_BINS]) -> Result<usize, std::io::Error> {
@@ -15,15 +26,14 @@ impl TextOutputHandler {
 		const CELL_EMPTY: &'static str = " ";
 		const CELL_FULL: &'static str = "x";
 
-		const HEIGHT: usize = 20;
+		const HEIGHT: usize = 30;
 		// const WIDTH: usize = SPECTRUM_BINS;
 
-		const UP_TRESHOLD: f64 = 0.0;
-		const LOW_TRESHOLD: f64 = -150.0;
-		const HALF_STEP: f64 = (UP_TRESHOLD - LOW_TRESHOLD) / HEIGHT as f64 / 2.0f64;
+		let val_diff = self.up_threshold - self.low_threshold;
+		let half_step: f64 = val_diff / HEIGHT as f64 / 2.0f64;
 
 		for row in 0 .. HEIGHT {
-			let cell_limit: f64 = (HEIGHT - row) as f64 / HEIGHT as f64 * (UP_TRESHOLD - LOW_TRESHOLD) + LOW_TRESHOLD - HALF_STEP;
+			let cell_limit: f64 = (HEIGHT - row) as f64 / HEIGHT as f64 * val_diff + self.low_threshold - half_step;
 
 			write!(stream, "{}", ROW_PREFIX)?;
 			for column in 0 .. SPECTRUM_BINS {

@@ -20,6 +20,13 @@ fn main() {
 		std::time::Instant::now()
 	).init_boxed().expect("Could not initalize logger");
 
+	log::info!(
+		"Config:\n\tWINDOW_SIZE: {}\n\tUPDATE_FRAMES: {}\n\tSPECTRUM_BINS: {}",
+		config::WINDOW_SIZE,
+		config::UPDATE_FRAMES,
+		config::SPECTRUM_BINS
+	);
+
 	let cli_config = core::config::CliConfig::parse(
 		std::env::args().skip(1)
 	);
@@ -29,8 +36,16 @@ fn main() {
 		_, _,
 		{config::WINDOW_SIZE}, {config::SPECTRUM_BINS}, {config::UPDATE_FRAMES}
 	> = Context::new(
-		(),
-		output::text::TextOutputHandler::new()
+		(
+			// operator::tracking_smoother::TrackingSmootherOperator::new(10.0),
+			operator::min_normalizer::MinNormalizerOperator,
+			// operator::bin_weights::BinWeightsOperator::interpolate_stops(
+			// 	[(0, 0.25), (8, 0.5), (31, 1.0), (47, 1.0), (62, 1.0)].iter().map(|v| *v),
+			// 	|x| x
+			// )
+		),
+		output::text::TextOutputHandler::new(-300.0, 300.0)
+		// output::text::TextOutputHandler::new(0.0, 5.0)
 	);
 
 	// TODO: Allow choosing which backend to use
